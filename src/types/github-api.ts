@@ -196,8 +196,6 @@ export interface GitHubSearchResponse<T> {
   items: T[];
 }
 
-export interface GitHubSearchIssuesResponse extends GitHubSearchResponse<GitHubPullRequest> {}
-
 export interface GitHubCommit {
   sha: string;
   node_id: string;
