@@ -174,7 +174,7 @@ export interface GitHubPullRequest {
     statuses: { href: string };
   };
   author_association: 'COLLABORATOR' | 'CONTRIBUTOR' | 'FIRST_TIMER' | 'FIRST_TIME_CONTRIBUTOR' | 'MANNEQUIN' | 'MEMBER' | 'NONE' | 'OWNER';
-  auto_merge: any | null;
+  auto_merge: null;
   active_lock_reason: string | null;
   merged: boolean;
   mergeable: boolean | null;
@@ -310,5 +310,5 @@ export interface GitHubIssueComment {
     rocket: number;
     eyes: number;
   };
-  performed_via_github_app: any | null;
+  performed_via_github_app: null;
 }
