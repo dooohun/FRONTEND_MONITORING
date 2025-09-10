@@ -1,6 +1,14 @@
+import type { GitHubCommit, GitHubIssueComment, GitHubPullRequest, GitHubReview, GitHubReviewComment } from '@/types/github-api';
 import { sql } from './db';
 import { GitHubService } from './github-service';
 
+export interface MonthData {
+  pr: GitHubPullRequest;
+  commits: GitHubCommit[];
+  reviews: GitHubReview[];
+  reviewComments: GitHubReviewComment[];
+  issueComments: GitHubIssueComment[];
+}
 export class DatabaseSyncService {
   private githubService: GitHubService;
 
@@ -33,7 +41,7 @@ export class DatabaseSyncService {
     await sql`DELETE FROM pr_activities WHERE month = ${month} AND repo_owner = ${repoOwner} AND repo_name = ${repoName}`;
   }
 
-  private async saveMonthData(monthData: any[], month: string, repoOwner: string, repoName: string) {
+  private async saveMonthData(monthData: MonthData[], month: string, repoOwner: string, repoName: string) {
     let processedPRs = 0;
     let totalComments = 0;
 

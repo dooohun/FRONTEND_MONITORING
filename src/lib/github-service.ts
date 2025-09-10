@@ -1,26 +1,5 @@
-import type { GitHubPullRequest } from "@/types/github-api";
-
-interface GitHubReviewComment {
-  id: number;
-  user: {
-    login: string;
-  } | null;
-  body: string;
-  created_at: string;
-  updated_at: string;
-  path: string;
-  line: number | null;
-}
-
-interface GitHubIssueComment {
-  id: number;
-  user: {
-    login: string;
-  } | null;
-  body: string;
-  created_at: string;
-  updated_at: string;
-}
+import type { GitHubCommit, GitHubIssueComment, GitHubPullRequest, GitHubReview, GitHubReviewComment } from "@/types/github-api";
+import type { MonthData } from "./db-sync";
 
 const BASE_URL = 'https://api.github.com';
 
@@ -116,7 +95,7 @@ export class GitHubService {
     return allPRs;
   }
 
-  async getPRCommits(prNumber: number) {
+  async getPRCommits(prNumber: number): Promise<GitHubCommit[]> {
     const response = await fetch(
       `${BASE_URL}/repos/${this.config.owner}/${this.config.repo}/pulls/${prNumber}/commits`,
       { headers: this.headers }
@@ -126,7 +105,7 @@ export class GitHubService {
     return response.json();
   }
 
-  async getPRReviews(prNumber: number) {
+  async getPRReviews(prNumber: number): Promise<GitHubReview[]> {
     const response = await fetch(
       `${BASE_URL}/repos/${this.config.owner}/${this.config.repo}/pulls/${prNumber}/reviews`,
       { headers: this.headers }
@@ -136,9 +115,9 @@ export class GitHubService {
     return response.json();
   }
 
-  async getCompleteMonthData(month: string) {
+  async getCompleteMonthData(month: string): Promise<MonthData[]> {
     const prs = await this.getPRsForMonth(month);
-    const results = [];
+    const results: MonthData[] = [];
 
     for (let i = 0; i < prs.length; i++) {
       const pr = prs[i];

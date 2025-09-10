@@ -39,7 +39,7 @@ export const getServerSideProps: GetServerSideProps<DashboardPageProps> = async 
     `;
 
     // 타입 안전하게 변환
-    const typedPerformances: PerformanceData[] = performances.map((row: any) => ({
+    const typedPerformances: PerformanceData[] = performances.map((row) => ({
       id: String(row.id),
       name: String(row.name),
       github_id: String(row.github_id),
