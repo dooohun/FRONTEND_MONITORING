@@ -1,13 +1,12 @@
-import React, { useState, useTransition } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { RefreshCw, Calendar, GitBranch, Users, Trophy, TrendingUp, MessageSquare, GitCommit, GitPullRequest } from 'lucide-react';
+import React, { useState, useTransition } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { RefreshCw, Calendar, GitBranch, Users, Trophy, TrendingUp, MessageSquare, GitCommit, GitPullRequest } from "lucide-react";
 
-// TypeScript Interfaces
 interface PerformanceData {
   id: string;
   name: string;
@@ -32,19 +31,13 @@ interface ChartData {
 }
 
 interface SyncStatus {
-  type: 'loading' | 'success' | 'error';
+  type: "loading" | "success" | "error";
   message: string;
   details?: {
     processedPRs: number;
     totalComments: number;
   };
 }
-
-interface GitHubTeamDashboardProps {
-  initialData?: PerformanceData[];
-}
-
-// Table Components with TypeScript
 interface TableProps {
   children: React.ReactNode;
 }
@@ -56,106 +49,115 @@ interface TableCellProps {
 
 const Table: React.FC<TableProps> = ({ children, ...props }) => (
   <div className="w-full overflow-auto">
-    <table className="w-full caption-bottom text-sm" {...props}>{children}</table>
+    <table className="w-full caption-bottom text-sm" {...props}>
+      {children}
+    </table>
   </div>
 );
 
-const TableHeader: React.FC<TableProps> = ({ children }) => (
-  <thead className="[&_tr]:border-b">{children}</thead>
-);
+const TableHeader: React.FC<TableProps> = ({ children }) => <thead className="[&_tr]:border-b">{children}</thead>;
 
-const TableBody: React.FC<TableProps> = ({ children }) => (
-  <tbody className="[&_tr:last-child]:border-0">{children}</tbody>
-);
+const TableBody: React.FC<TableProps> = ({ children }) => <tbody className="[&_tr:last-child]:border-0">{children}</tbody>;
 
 const TableRow: React.FC<TableCellProps> = ({ children, className = "" }) => (
   <tr className={`border-b transition-colors hover:bg-muted/50 ${className}`}>{children}</tr>
 );
 
 const TableHead: React.FC<TableCellProps> = ({ children, className = "" }) => (
-  <th className={`h-12 px-4 text-left align-middle font-medium text-muted-foreground ${className}`}>
-    {children}
-  </th>
+  <th className={`h-12 px-4 text-left align-middle font-medium text-muted-foreground ${className}`}>{children}</th>
 );
 
-const TableCell: React.FC<TableCellProps> = ({ children, className = "" }) => (
-  <td className={`p-4 align-middle ${className}`}>{children}</td>
-);
+const TableCell: React.FC<TableCellProps> = ({ children, className = "" }) => <td className={`p-4 align-middle ${className}`}>{children}</td>;
 
 // Constants
-const REPOS: string[] = ['KOIN_WEB_RECODE', 'KOIN_ORDER_WEBVIEW', 'KOIN_OWNER_WEB', 'B_BOT', 'BCSD_INTERNAL_WEB'];
-const YEARS: string[] = ['2025']
+const REPOS: string[] = ["KOIN_WEB_RECODE", "KOIN_ORDER_WEBVIEW", "KOIN_OWNER_WEB", "B_BOT", "BCSD_INTERNAL_WEB"];
+const YEARS: string[] = ["2025"];
 const MONTHS: Array<{ value: string; label: string }> = [
-  { value: '01', label: '1월' }, { value: '02', label: '2월' }, { value: '03', label: '3월' },
-  { value: '04', label: '4월' }, { value: '05', label: '5월' }, { value: '06', label: '6월' },
-  { value: '07', label: '7월' }, { value: '08', label: '8월' }, { value: '09', label: '9월' },
-  { value: '10', label: '10월' }, { value: '11', label: '11월' }, { value: '12', label: '12월' }
+  { value: "01", label: "1월" },
+  { value: "02", label: "2월" },
+  { value: "03", label: "3월" },
+  { value: "04", label: "4월" },
+  { value: "05", label: "5월" },
+  { value: "06", label: "6월" },
+  { value: "07", label: "7월" },
+  { value: "08", label: "8월" },
+  { value: "09", label: "9월" },
+  { value: "10", label: "10월" },
+  { value: "11", label: "11월" },
+  { value: "12", label: "12월" },
 ];
+const TRACKS: string[] = ["Frontend Track", "Backend Track", "Android Track", "iOS Track"];
 
-const GitHubTeamDashboard = ({ 
-  initialData
-}: { initialData: PerformanceData[] }) => {
+const GitHubTeamDashboard = ({ initialData }: { initialData: PerformanceData[] }) => {
   const thisYear = new Date().getFullYear();
-  const thisMonth = String(new Date().getMonth() + 1).padStart(2, '0');
+  const thisMonth = String(new Date().getMonth() + 1).padStart(2, "0");
   const [isPending, startTransition] = useTransition();
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
   const [selectedRepo, setSelectedRepo] = useState<string>(REPOS[0]);
   const [selectedYear, setSelectedYear] = useState<string>(String(thisYear));
   const [selectedMonth, setSelectedMonth] = useState<string>(thisMonth);
-  const [performanceData] = useState<PerformanceData[]>(initialData);
+  const [selectedTrack, setSelectedTrack] = useState<string>(TRACKS[0]);
+  const [performanceData, setPerformanceData] = useState<PerformanceData[]>(initialData.filter((member) => member.track_name === selectedTrack));
+  console.log(initialData);
 
   const handleSync = (): void => {
     const targetMonth = `${selectedYear}-${selectedMonth}`;
-    
+
     startTransition(async () => {
-      setSyncStatus({ type: 'loading', message: 'GitHub 데이터를 동기화하는 중...' });
-      
+      setSyncStatus({ type: "loading", message: "GitHub 데이터를 동기화하는 중..." });
+
       try {
-        const response = await fetch('/api/sync', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const response = await fetch("/api/sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             month: targetMonth,
-            repoOwner: 'BCSDLab',
-            repoName: selectedRepo
-          })
+            repoOwner: "BCSDLab",
+            repoName: selectedRepo,
+          }),
         });
 
         const result = await response.json();
 
         if (response.ok && result.success) {
-          setSyncStatus({ 
-            type: 'success', 
-            message: result.message, 
-            details: result.data 
+          setSyncStatus({
+            type: "success",
+            message: result.message,
+            details: result.data,
           });
           setTimeout(() => window.location.reload(), 2000);
         } else {
-          setSyncStatus({ 
-            type: 'error', 
-            message: result.error || 'Sync failed' 
+          setSyncStatus({
+            type: "error",
+            message: result.error || "Sync failed",
           });
         }
       } catch (error) {
-        setSyncStatus({ 
-          type: 'error', 
-          message: 'Network error occurred' 
+        setSyncStatus({
+          type: "error",
+          message: "Network error occurred",
         });
       }
     });
   };
 
-  const chartData: ChartData[] = performanceData.map(member => ({
+  const handleChangeTrack = (track: string) => {
+    setSelectedTrack(track);
+    const filteredData = initialData.filter((member) => member.track_name === track);
+    setPerformanceData(filteredData);
+  };
+
+  const chartData: ChartData[] = performanceData.map((member) => ({
     name: member.name,
     commits: member.commits_count,
     prs: member.prs_count,
-    comments: member.total_comments_count
+    comments: member.total_comments_count,
   }));
 
   const rankedData: RankedData[] = [...performanceData]
-    .map(member => ({
+    .map((member) => ({
       ...member,
-      score: member.commits_count + (member.prs_count * 2) + member.total_comments_count
+      score: member.commits_count + member.prs_count * 2 + member.total_comments_count,
     }))
     .sort((a, b) => b.score - a.score);
 
@@ -192,9 +194,7 @@ const GitHubTeamDashboard = ({
               <GitBranch className="h-5 w-5" />
               동기화 설정
             </CardTitle>
-            <CardDescription>
-              GitHub 레포지토리와 기간을 선택하여 데이터를 동기화합니다.- 에러 발생 시 관리자에게 문의하세요.
-            </CardDescription>
+            <CardDescription>GitHub 레포지토리와 기간을 선택하여 데이터를 동기화합니다.- 에러 발생 시 관리자에게 문의하세요.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap items-end gap-4">
@@ -205,8 +205,10 @@ const GitHubTeamDashboard = ({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {REPOS.map(repo => (
-                      <SelectItem key={repo} value={repo}>{repo}</SelectItem>
+                    {REPOS.map((repo) => (
+                      <SelectItem key={repo} value={repo}>
+                        {repo}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -219,8 +221,10 @@ const GitHubTeamDashboard = ({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {YEARS.map(year => (
-                      <SelectItem key={year} value={year}>{year}년</SelectItem>
+                    {YEARS.map((year) => (
+                      <SelectItem key={year} value={year}>
+                        {year}년
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -233,7 +237,7 @@ const GitHubTeamDashboard = ({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {MONTHS.map(month => (
+                    {MONTHS.map((month) => (
                       <SelectItem key={month.value} value={month.value}>
                         {month.label}
                       </SelectItem>
@@ -242,28 +246,27 @@ const GitHubTeamDashboard = ({
                 </Select>
               </div>
 
-              <Button 
-                onClick={handleSync} 
-                disabled={isPending} 
-                className="flex items-center gap-2"
-              >
-                <RefreshCw className={`h-4 w-4 ${isPending ? 'animate-spin' : ''}`} />
-                {isPending ? '동기화 중...' : '동기화'}
+              <Button onClick={handleSync} disabled={isPending} className="flex items-center gap-2">
+                <RefreshCw className={`h-4 w-4 ${isPending ? "animate-spin" : ""}`} />
+                {isPending ? "동기화 중..." : "동기화"}
               </Button>
             </div>
 
             {syncStatus && (
-              <Alert className={`mt-4 ${
-                syncStatus.type === 'success' ? 'border-green-200 bg-green-50' : 
-                syncStatus.type === 'error' ? 'border-red-200 bg-red-50' : 
-                'border-blue-200 bg-blue-50'
-              }`}>
+              <Alert
+                className={`mt-4 ${
+                  syncStatus.type === "success"
+                    ? "border-green-200 bg-green-50"
+                    : syncStatus.type === "error"
+                    ? "border-red-200 bg-red-50"
+                    : "border-blue-200 bg-blue-50"
+                }`}
+              >
                 <AlertDescription>
                   {syncStatus.message}
                   {syncStatus.details && (
                     <div className="mt-1 text-sm">
-                      PR: {syncStatus.details.processedPRs}개, 
-                      코멘트: {syncStatus.details.totalComments}개 처리됨
+                      PR: {syncStatus.details.processedPRs}개, 코멘트: {syncStatus.details.totalComments}개 처리됨
                     </div>
                   )}
                 </AlertDescription>
@@ -275,28 +278,34 @@ const GitHubTeamDashboard = ({
 
       {/* Chart */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
-            팀 성과 차트
-          </CardTitle>
-          <CardDescription>
-            {selectedYear}년 {selectedMonth}월 팀원별 활동 현황
-          </CardDescription>
+        <CardHeader className="flex justify-between">
+          <div className="flex flex-col gap-2">
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />팀 성과 차트
+            </CardTitle>
+            <CardDescription>
+              {selectedYear}년 {selectedMonth}월 팀원별 활동 현황
+            </CardDescription>
+          </div>
+          <Select value={selectedTrack} onValueChange={handleChangeTrack}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="트랙 선택" />
+              <SelectContent>
+                {TRACKS.map((track) => (
+                  <SelectItem key={track} value={track}>
+                    {track}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </SelectTrigger>
+          </Select>
         </CardHeader>
         <CardContent>
-          <div className="h-80">
+          <div className="h-96">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
                 <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                <XAxis 
-                  dataKey="name" 
-                  tick={{ fontSize: 12 }} 
-                  interval={0} 
-                  angle={-45} 
-                  textAnchor="end" 
-                  height={80} 
-                />
+                <XAxis dataKey="name" tick={{ fontSize: 12 }} interval={0} angle={-45} textAnchor="end" height={80} />
                 <YAxis tick={{ fontSize: 12 }} />
                 <Tooltip />
                 <Bar dataKey="commits" fill="hsl(var(--primary))" name="커밋" />
@@ -362,9 +371,7 @@ const GitHubTeamDashboard = ({
             <Trophy className="h-5 w-5" />
             이달의 우수 개발자
           </CardTitle>
-          <CardDescription>
-            커밋, PR, 코멘트 활동을 종합한 순위입니다 (가중치: 커밋×1 + PR×2 + 코멘트×1)
-          </CardDescription>
+          <CardDescription>커밋, PR, 코멘트 활동을 종합한 순위입니다 (가중치: 커밋×1 + PR×2 + 코멘트×1)</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -382,7 +389,7 @@ const GitHubTeamDashboard = ({
             </TableHeader>
             <TableBody>
               {rankedData.map((member, index) => (
-                <TableRow key={member.id} className={index < 3 ? 'bg-muted/30' : ''}>
+                <TableRow key={member.id} className={index < 3 ? "bg-muted/30" : ""}>
                   <TableCell>{getRankBadge(index)}</TableCell>
                   <TableCell className="font-medium">
                     <div>
