@@ -96,7 +96,7 @@ const REPOS: Record<string, string[]> = {
   "Frontend Track": ["KOIN_WEB_RECODE", "KOIN_ORDER_WEBVIEW", "KOIN_OWNER_WEB", "B_BOT", "BCSD_INTERNAL_WEB"],
   "Android Track": ["KOIN_ANDROID", "BCSD_INTERNAL_MOBILE"],
   "iOS Track": [],
-  "Backend Track": [],
+  "Backend Track": ["KOIN_API_V2"],
 };
 
 const GitHubTeamDashboard = ({ initialData, selectedYear, selectedMonth }: GitHubTeamDashboardProps) => {
