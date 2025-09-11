@@ -76,7 +76,6 @@ const TableHead: React.FC<TableCellProps> = ({ children, className = "" }) => (
 
 const TableCell: React.FC<TableCellProps> = ({ children, className = "" }) => <td className={`p-4 align-middle ${className}`}>{children}</td>;
 
-const REPOS: string[] = ["KOIN_WEB_RECODE", "KOIN_ORDER_WEBVIEW", "KOIN_OWNER_WEB", "B_BOT", "BCSD_INTERNAL_WEB"];
 const YEARS: string[] = ["2025"];
 const MONTHS: Array<{ value: string; label: string }> = [
   { value: "01", label: "1월" },
@@ -93,17 +92,24 @@ const MONTHS: Array<{ value: string; label: string }> = [
   { value: "12", label: "12월" },
 ];
 const TRACKS: string[] = ["Frontend Track", "Backend Track", "Android Track", "iOS Track"];
+const REPOS: Record<string, string[]> = {
+  "Frontend Track": ["KOIN_WEB_RECODE", "KOIN_ORDER_WEBVIEW", "KOIN_OWNER_WEB", "B_BOT", "BCSD_INTERNAL_WEB"],
+  "Android Track": ["KOIN_ANDROID", "BCSD_INTERNAL_MOBILE"],
+  "iOS Track": [],
+  "Backend Track": [],
+};
 
 const GitHubTeamDashboard = ({ initialData, selectedYear, selectedMonth }: GitHubTeamDashboardProps) => {
   const thisYear = new Date().getFullYear();
   const thisMonth = String(new Date().getMonth() + 1).padStart(2, "0");
   const [isPending, startTransition] = useTransition();
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
-  const [selectedRepo, setSelectedRepo] = useState<string>(REPOS[0]);
+  const [selectedTrack, setSelectedTrack] = useState<string>(TRACKS[0]);
+  const [selectedSyncTrack, setSelectedSyncTrack] = useState<string>(TRACKS[0]);
+  const [selectedRepo, setSelectedRepo] = useState<string>(REPOS[selectedTrack][0]);
   const [selectedSyncYear, setSelectedSyncYear] = useState<string>(String(thisYear));
   const [selectedSyncMonth, setSelectedSyncMonth] = useState<string>(thisMonth);
 
-  const [selectedTrack, setSelectedTrack] = useState<string>(TRACKS[0]);
   const [performanceData, setPerformanceData] = useState<PerformanceData[]>(initialData.filter((member) => member.track_name === selectedTrack));
 
   const router = useRouter();
@@ -175,6 +181,11 @@ const GitHubTeamDashboard = ({ initialData, selectedYear, selectedMonth }: GitHu
     setSelectedTrack(track);
     const filteredData = initialData.filter((member) => member.track_name === track);
     setPerformanceData(filteredData);
+  };
+
+  const handleChangeSyncTrack = (track: string) => {
+    setSelectedSyncTrack(track);
+    setSelectedRepo(REPOS[track][0]);
   };
 
   const chartData: ChartData[] = performanceData.map((member) => ({
@@ -262,13 +273,29 @@ const GitHubTeamDashboard = ({ initialData, selectedYear, selectedMonth }: GitHu
           <CardContent>
             <div className="flex flex-wrap items-end gap-4">
               <div className="space-y-2">
+                <label className="text-sm font-medium">트랙</label>
+                <Select value={selectedSyncTrack} onValueChange={handleChangeSyncTrack}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TRACKS.map((track) => (
+                      <SelectItem key={track} value={track}>
+                        {track}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
                 <label className="text-sm font-medium">레포지토리</label>
                 <Select value={selectedRepo} onValueChange={setSelectedRepo}>
                   <SelectTrigger className="w-48">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {REPOS.map((repo) => (
+                    {REPOS[selectedSyncTrack].map((repo) => (
                       <SelectItem key={repo} value={repo}>
                         {repo}
                       </SelectItem>
