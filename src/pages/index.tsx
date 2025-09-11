@@ -1,6 +1,6 @@
-import type { GetServerSideProps } from 'next';
-import GitHubTeamDashboard from '@/components/GitHubTeamDashboard';
-import { sql } from '@/lib/db';
+import type { GetServerSideProps } from "next";
+import GitHubTeamDashboard from "@/components/GitHubTeamDashboard";
+import { sql } from "@/lib/db";
 interface PerformanceData {
   id: string;
   name: string;
@@ -15,12 +15,20 @@ interface PerformanceData {
 
 interface DashboardPageProps {
   initialData: PerformanceData[];
+  selectedYear: string;
+  selectedMonth: string;
 }
 
-export const getServerSideProps: GetServerSideProps<DashboardPageProps> = async () => {
+export const getServerSideProps: GetServerSideProps<DashboardPageProps> = async ({ query }) => {
   try {
-    const currentMonth = new Date().toISOString().slice(0, 7);
-    
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear().toString();
+    const currentMonth = String(currentDate.getMonth() + 1).padStart(2, "0");
+
+    const selectedYear = (query.year as string) || currentYear;
+    const selectedMonth = (query.month as string) || currentMonth;
+    const selectedYearMonth = `${selectedYear}-${selectedMonth}`;
+
     const performances = await sql`
       SELECT 
         tm.id::text as id,
@@ -33,7 +41,7 @@ export const getServerSideProps: GetServerSideProps<DashboardPageProps> = async 
         COALESCE(tp.total_comments_count, 0)::integer as total_comments_count,
         COALESCE(tp.pr_comments_count, 0)::integer as pr_comments_count
       FROM team_members tm
-      LEFT JOIN team_performances tp ON tm.id = tp.member_id AND tp.month = ${currentMonth}
+      LEFT JOIN team_performances tp ON tm.id = tp.member_id AND tp.month = ${selectedYearMonth}
       WHERE tm.is_active = true
       ORDER BY tm.name
     `;
@@ -53,19 +61,23 @@ export const getServerSideProps: GetServerSideProps<DashboardPageProps> = async 
 
     return {
       props: {
-        initialData: typedPerformances
-      }
+        initialData: typedPerformances,
+        selectedYear,
+        selectedMonth,
+      },
     };
   } catch (error) {
-    console.error('Dashboard data fetch error:', error);
+    console.error("Dashboard data fetch error:", error);
     return {
       props: {
-        initialData: []
-      }
+        initialData: [],
+        selectedYear: String(new Date().getFullYear()),
+        selectedMonth: String(new Date().getMonth() + 1).padStart(2, "0"),
+      },
     };
   }
 };
 
-export default function DashboardPage({ initialData }: DashboardPageProps) {
-  return <GitHubTeamDashboard initialData={initialData} />;
-};
+export default function DashboardPage({ initialData, selectedYear, selectedMonth }: DashboardPageProps) {
+  return <GitHubTeamDashboard initialData={initialData} selectedYear={selectedYear} selectedMonth={selectedMonth} />;
+}

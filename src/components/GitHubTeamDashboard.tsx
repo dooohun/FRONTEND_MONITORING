@@ -1,4 +1,4 @@
-import React, { useState, useTransition } from "react";
+import React, { useEffect, useState, useTransition } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { RefreshCw, Calendar, GitBranch, Users, Trophy, TrendingUp, MessageSquare, GitCommit, GitPullRequest } from "lucide-react";
+import { useRouter } from "next/router";
 
 interface PerformanceData {
   id: string;
@@ -17,6 +18,12 @@ interface PerformanceData {
   review_comments_count: number;
   total_comments_count: number;
   pr_comments_count: number;
+}
+
+interface GitHubTeamDashboardProps {
+  initialData: PerformanceData[];
+  selectedYear: string;
+  selectedMonth: string;
 }
 
 interface RankedData extends PerformanceData {
@@ -69,7 +76,6 @@ const TableHead: React.FC<TableCellProps> = ({ children, className = "" }) => (
 
 const TableCell: React.FC<TableCellProps> = ({ children, className = "" }) => <td className={`p-4 align-middle ${className}`}>{children}</td>;
 
-// Constants
 const REPOS: string[] = ["KOIN_WEB_RECODE", "KOIN_ORDER_WEBVIEW", "KOIN_OWNER_WEB", "B_BOT", "BCSD_INTERNAL_WEB"];
 const YEARS: string[] = ["2025"];
 const MONTHS: Array<{ value: string; label: string }> = [
@@ -88,20 +94,44 @@ const MONTHS: Array<{ value: string; label: string }> = [
 ];
 const TRACKS: string[] = ["Frontend Track", "Backend Track", "Android Track", "iOS Track"];
 
-const GitHubTeamDashboard = ({ initialData }: { initialData: PerformanceData[] }) => {
+const GitHubTeamDashboard = ({ initialData, selectedYear, selectedMonth }: GitHubTeamDashboardProps) => {
   const thisYear = new Date().getFullYear();
   const thisMonth = String(new Date().getMonth() + 1).padStart(2, "0");
   const [isPending, startTransition] = useTransition();
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
   const [selectedRepo, setSelectedRepo] = useState<string>(REPOS[0]);
-  const [selectedYear, setSelectedYear] = useState<string>(String(thisYear));
-  const [selectedMonth, setSelectedMonth] = useState<string>(thisMonth);
+  const [selectedSyncYear, setSelectedSyncYear] = useState<string>(String(thisYear));
+  const [selectedSyncMonth, setSelectedSyncMonth] = useState<string>(thisMonth);
+
   const [selectedTrack, setSelectedTrack] = useState<string>(TRACKS[0]);
   const [performanceData, setPerformanceData] = useState<PerformanceData[]>(initialData.filter((member) => member.track_name === selectedTrack));
-  console.log(initialData);
+
+  const router = useRouter();
+
+  const handleYearChange = (year: string) => {
+    router.push(
+      {
+        pathname: router.pathname,
+        query: { ...router.query, year, month: selectedMonth },
+      },
+      undefined,
+      { shallow: false }
+    );
+  };
+
+  const handleMonthChange = (month: string) => {
+    router.push(
+      {
+        pathname: router.pathname,
+        query: { ...router.query, year: selectedYear, month },
+      },
+      undefined,
+      { shallow: false }
+    );
+  };
 
   const handleSync = (): void => {
-    const targetMonth = `${selectedYear}-${selectedMonth}`;
+    const targetMonth = `${selectedSyncYear}-${selectedSyncMonth}`;
 
     startTransition(async () => {
       setSyncStatus({ type: "loading", message: "GitHub 데이터를 동기화하는 중..." });
@@ -172,6 +202,11 @@ const GitHubTeamDashboard = ({ initialData }: { initialData: PerformanceData[] }
   const totalPRs: number = performanceData.reduce((sum, member) => sum + member.prs_count, 0);
   const totalComments: number = performanceData.reduce((sum, member) => sum + member.total_comments_count, 0);
 
+  useEffect(() => {
+    const filteredData = initialData.filter((member) => member.track_name === selectedTrack);
+    setPerformanceData(filteredData);
+  }, [initialData, selectedTrack]);
+
   return (
     <div className="container mx-auto p-6 space-y-6 max-w-7xl">
       {/* Header */}
@@ -181,9 +216,37 @@ const GitHubTeamDashboard = ({ initialData }: { initialData: PerformanceData[] }
             <h1 className="text-3xl font-bold tracking-tight">GitHub Team Dashboard</h1>
             <p className="text-muted-foreground mt-1">BCSDLab 조직의 팀 성과 분석 대시보드</p>
           </div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Calendar className="h-4 w-4" />
-            {selectedYear}년 {selectedMonth}월
+          <div className="flex flex-col items-center gap-2 text-sm text-muted-foreground">
+            <div className="flex self-end gap-1">
+              <Calendar className="h-4 w-4" />
+              {selectedYear}년 {selectedMonth}월
+            </div>
+            <div className="flex items-center gap-2">
+              <Select value={selectedYear} onValueChange={handleYearChange}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {YEARS.map((year) => (
+                    <SelectItem key={year} value={year}>
+                      {year}년
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={selectedMonth} onValueChange={handleMonthChange}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {MONTHS.map((month) => (
+                    <SelectItem key={month.value} value={month.value}>
+                      {month.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
 
@@ -216,7 +279,7 @@ const GitHubTeamDashboard = ({ initialData }: { initialData: PerformanceData[] }
 
               <div className="space-y-2">
                 <label className="text-sm font-medium">년도</label>
-                <Select value={selectedYear} onValueChange={setSelectedYear}>
+                <Select value={selectedSyncYear} onValueChange={setSelectedSyncYear}>
                   <SelectTrigger className="w-24">
                     <SelectValue />
                   </SelectTrigger>
@@ -232,7 +295,7 @@ const GitHubTeamDashboard = ({ initialData }: { initialData: PerformanceData[] }
 
               <div className="space-y-2">
                 <label className="text-sm font-medium">월</label>
-                <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                <Select value={selectedSyncMonth} onValueChange={setSelectedSyncMonth}>
                   <SelectTrigger className="w-20">
                     <SelectValue />
                   </SelectTrigger>
