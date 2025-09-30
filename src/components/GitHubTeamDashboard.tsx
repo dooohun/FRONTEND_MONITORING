@@ -93,7 +93,7 @@ const MONTHS: Array<{ value: string; label: string }> = [
 ];
 const TRACKS: string[] = ["Frontend Track", "Backend Track", "Android Track", "iOS Track"];
 const REPOS: Record<string, string[]> = {
-  "Frontend Track": ["KOIN_WEB_RECODE", "KOIN_ORDER_WEBVIEW", "KOIN_OWNER_WEB", "B_BOT", "BCSD_INTERNAL_WEB"],
+  "Frontend Track": ["KOIN_WEB_RECODE", "KOIN_ORDER_WEBVIEW", "KOIN_OWNER_WEB", "B_BOT", "BCSD_INTERNAL_WEB", "KOIN_ADMIN_V2"],
   "Android Track": ["KOIN_ANDROID", "BCSD_INTERNAL_MOBILE"],
   "iOS Track": [],
   "Backend Track": ["KOIN_API_V2"],
