@@ -9,6 +9,7 @@ export interface MonthData {
   reviewComments: GitHubReviewComment[];
   issueComments: GitHubIssueComment[];
 }
+
 export class DatabaseSyncService {
   private githubService: GitHubService;
 
@@ -17,10 +18,8 @@ export class DatabaseSyncService {
   }
 
   async syncMonthData(month: string, repoOwner: string, repoName: string) {
-    
     try {
       const monthData = await this.githubService.getCompleteMonthData(month);
-      await this.clearExistingData(month, repoOwner, repoName);
       const stats = await this.saveMonthData(monthData, month, repoOwner, repoName);
       await this.updatePerformanceStats(month);
       
@@ -35,12 +34,6 @@ export class DatabaseSyncService {
     }
   }
 
-  private async clearExistingData(month: string, repoOwner: string, repoName: string) {
-    await sql`DELETE FROM comment_details WHERE month = ${month} AND repo_owner = ${repoOwner} AND repo_name = ${repoName}`;
-    await sql`DELETE FROM review_activities WHERE month = ${month} AND repo_owner = ${repoOwner} AND repo_name = ${repoName}`;
-    await sql`DELETE FROM pr_activities WHERE month = ${month} AND repo_owner = ${repoOwner} AND repo_name = ${repoName}`;
-  }
-
   private async saveMonthData(monthData: MonthData[], month: string, repoOwner: string, repoName: string) {
     let processedPRs = 0;
     let totalComments = 0;
@@ -52,35 +45,59 @@ export class DatabaseSyncService {
       const receivedCommentsCount = reviewComments.length + issueComments.length;
       const receivedReviewsCount = reviews.length;
 
-      await sql`
-        INSERT INTO pr_activities (
-          member_id, pr_number, pr_title, pr_state, commits_count,
-          received_comments_count, received_reviews_count,
-          created_at, updated_at, merged_at, month, repo_owner, repo_name, pr_url
-        )
-        VALUES (
-          ${author.id}, ${pr.number}, ${pr.title}, ${pr.state}, ${commits.length},
-          ${receivedCommentsCount}, ${receivedReviewsCount},
-          ${pr.created_at}, ${pr.updated_at}, ${pr.merged_at}, ${month}, 
-          ${repoOwner}, ${repoName}, ${pr.html_url}
-        )
-      `;
+      try {
+        await sql`
+          INSERT INTO pr_activities (
+            member_id, pr_number, pr_title, pr_state, commits_count,
+            received_comments_count, received_reviews_count,
+            created_at, updated_at, merged_at, month, repo_owner, repo_name, pr_url
+          )
+          VALUES (
+            ${author.id}, ${pr.number}, ${pr.title}, ${pr.state}, ${commits.length},
+            ${receivedCommentsCount}, ${receivedReviewsCount},
+            ${pr.created_at}, ${pr.updated_at}, ${pr.merged_at}, ${month}, 
+            ${repoOwner}, ${repoName}, ${pr.html_url}
+          )
+          ON CONFLICT (member_id, pr_number, repo_owner, repo_name)
+          DO UPDATE SET
+            pr_title = EXCLUDED.pr_title,
+            pr_state = EXCLUDED.pr_state,
+            commits_count = EXCLUDED.commits_count,
+            received_comments_count = EXCLUDED.received_comments_count,
+            received_reviews_count = EXCLUDED.received_reviews_count,
+            updated_at = EXCLUDED.updated_at,
+            merged_at = EXCLUDED.merged_at,
+            pr_url = EXCLUDED.pr_url
+        `;
+      } catch (error) {
+        if (error instanceof Error) {
+          console.error(error);
+          throw error;
+        }
+      }
 
       for (const review of reviews) {
         if (!review.user) continue;
         
         const reviewer = await this.ensureMember(review.user.login);
         
-        await sql`
-          INSERT INTO review_activities (
-            reviewer_id, pr_number, pr_author_id, review_type, review_state,
-            comment_count, reviewed_at, month, repo_owner, repo_name
-          )
-          VALUES (
-            ${reviewer.id}, ${pr.number}, ${author.id}, 'review', ${review.state},
-            1, ${review.submitted_at}, ${month}, ${repoOwner}, ${repoName}
-          )
-        `;
+        try {
+          await sql`
+            INSERT INTO review_activities (
+              reviewer_id, pr_number, pr_author_id, review_type, review_state,
+              comment_count, reviewed_at, month, repo_owner, repo_name
+            )
+            VALUES (
+              ${reviewer.id}, ${pr.number}, ${author.id}, 'review', ${review.state},
+              1, ${review.submitted_at}, ${month}, ${repoOwner}, ${repoName}
+            )
+          `;
+        } catch (error) {
+          if (error instanceof Error) {
+            console.error("Error inserting review activity: ", error);
+            throw error;
+          }
+        }
       }
 
       for (const comment of reviewComments) {
@@ -89,20 +106,26 @@ export class DatabaseSyncService {
         const commenter = await this.ensureMember(comment.user.login);
         const isSubstantive = this.isSubstantiveComment(comment.body);
         
-        await sql`
-          INSERT INTO comment_details (
-            commenter_id, pr_number, pr_author_id, comment_type,
-            comment_length, is_substantive, created_at, month,
-            repo_owner, repo_name, github_comment_id
-          )
-          VALUES (
-            ${commenter.id}, ${pr.number}, ${author.id}, 'review_comment',
-            ${comment.body.length}, ${isSubstantive}, ${comment.created_at}, ${month},
-            ${repoOwner}, ${repoName}, ${comment.id}
-          )
-        `;
-        
-        totalComments++;
+        try {
+          await sql`
+            INSERT INTO comment_details (
+              commenter_id, pr_number, pr_author_id, comment_type,
+              comment_length, is_substantive, created_at, month,
+              repo_owner, repo_name, github_comment_id
+            )
+            VALUES (
+              ${commenter.id}, ${pr.number}, ${author.id}, 'review_comment',
+              ${comment.body.length}, ${isSubstantive}, ${comment.created_at}, ${month},
+              ${repoOwner}, ${repoName}, ${comment.id}
+            )
+          `;
+          totalComments++;
+        } catch (error) {
+          if (error instanceof Error) {
+            console.error("Error inserting review comment", error);
+            throw error;
+          }
+        }
       }
 
       for (const comment of issueComments) {
@@ -111,20 +134,26 @@ export class DatabaseSyncService {
         const commenter = await this.ensureMember(comment.user.login);
         const isSubstantive = this.isSubstantiveComment(comment.body);
         
-        await sql`
-          INSERT INTO comment_details (
-            commenter_id, pr_number, pr_author_id, comment_type,
-            comment_length, is_substantive, created_at, month,
-            repo_owner, repo_name, github_comment_id
-          )
-          VALUES (
-            ${commenter.id}, ${pr.number}, ${author.id}, 'issue_comment',
-            ${comment.body.length}, ${isSubstantive}, ${comment.created_at}, ${month},
-            ${repoOwner}, ${repoName}, ${comment.id}
-          )
-        `;
-        
-        totalComments++;
+        try {
+          await sql`
+            INSERT INTO comment_details (
+              commenter_id, pr_number, pr_author_id, comment_type,
+              comment_length, is_substantive, created_at, month,
+              repo_owner, repo_name, github_comment_id
+            )
+            VALUES (
+              ${commenter.id}, ${pr.number}, ${author.id}, 'issue_comment',
+              ${comment.body.length}, ${isSubstantive}, ${comment.created_at}, ${month},
+              ${repoOwner}, ${repoName}, ${comment.id}
+            )
+          `;
+          totalComments++;
+        } catch (error) {
+          if (error instanceof Error) {
+            console.error('Error inserting issue comment:', error);
+            throw error;
+          }
+        }
       }
 
       processedPRs++;
@@ -138,7 +167,6 @@ export class DatabaseSyncService {
     const members = await sql`SELECT * FROM team_members WHERE is_active = true`;
 
     for (const member of members) {
-      // PR 통계
       const prStats = await sql`
         SELECT 
           COUNT(*) as prs_count,
@@ -148,7 +176,6 @@ export class DatabaseSyncService {
         WHERE member_id = ${member.id} AND month = ${month}
       `;
 
-      // 작성한 코멘트 통계
       const commentStats = await sql`
         SELECT 
           COUNT(*) as total_comments,
@@ -158,7 +185,6 @@ export class DatabaseSyncService {
         WHERE commenter_id = ${member.id} AND month = ${month}
       `;
 
-      // 리뷰 통계
       const reviewStats = await sql`
         SELECT COUNT(*) as reviews_count
         FROM review_activities 
@@ -204,18 +230,14 @@ export class DatabaseSyncService {
     return newMember[0];
   }
 
-  // 의미있는 코멘트인지 판단 (간단한 휴리스틱)
   private isSubstantiveComment(body: string): boolean {
     const cleanBody = body.trim().toLowerCase();
     
-    // 너무 짧은 코멘트 제외
     if (cleanBody.length < 10) return false;
     
-    // 단순한 응답 제외
     const simpleResponses = ['👍', ':+1:', '수고하셨습니다.', '수고하셨습니다!'];
     if (simpleResponses.some(response => cleanBody === response)) return false;
     
-    // 코드 블록이나 상세한 설명이 있으면 의미있다고 판단
     if (cleanBody.includes('```') || cleanBody.includes('http') || cleanBody.length > 50) {
       return true;
     }
