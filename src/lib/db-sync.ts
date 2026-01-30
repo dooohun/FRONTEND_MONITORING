@@ -91,6 +91,7 @@ export class DatabaseSyncService {
               ${reviewer.id}, ${pr.number}, ${author.id}, 'review', ${review.state},
               1, ${review.submitted_at}, ${month}, ${repoOwner}, ${repoName}
             )
+            ON CONFLICT DO NOTHING
           `;
         } catch (error) {
           if (error instanceof Error) {
@@ -118,6 +119,9 @@ export class DatabaseSyncService {
               ${comment.body.length}, ${isSubstantive}, ${comment.created_at}, ${month},
               ${repoOwner}, ${repoName}, ${comment.id}
             )
+            ON CONFLICT (github_comment_id, repo_owner, repo_name) DO UPDATE SET
+              comment_length = EXCLUDED.comment_length,
+              is_substantive = EXCLUDED.is_substantive
           `;
           totalComments++;
         } catch (error) {
@@ -146,6 +150,9 @@ export class DatabaseSyncService {
               ${comment.body.length}, ${isSubstantive}, ${comment.created_at}, ${month},
               ${repoOwner}, ${repoName}, ${comment.id}
             )
+            ON CONFLICT (github_comment_id, repo_owner, repo_name) DO UPDATE SET
+              comment_length = EXCLUDED.comment_length,
+              is_substantive = EXCLUDED.is_substantive
           `;
           totalComments++;
         } catch (error) {
