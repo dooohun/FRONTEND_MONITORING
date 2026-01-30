@@ -76,7 +76,7 @@ const TableHead: React.FC<TableCellProps> = ({ children, className = "" }) => (
 
 const TableCell: React.FC<TableCellProps> = ({ children, className = "" }) => <td className={`p-4 align-middle ${className}`}>{children}</td>;
 
-const YEARS: string[] = ["2025"];
+const YEARS: string[] = ["2025", "2026"];
 const MONTHS: Array<{ value: string; label: string }> = [
   { value: "01", label: "1월" },
   { value: "02", label: "2월" },
