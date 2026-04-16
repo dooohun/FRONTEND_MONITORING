@@ -39,7 +39,7 @@ Planner 에이전트를 호출하여 구현 계획을 수립한다.
 Agent(
   description: "구현 계획 수립",
   subagent_type: "planner",
-  model: "opus",
+  model: "sonnet",
   prompt: "사용자 요청: {user_request}
   
   _workspace/01_plan.md에 구현 계획을 작성하라.
@@ -63,7 +63,7 @@ Developer 에이전트를 호출하여 코드를 구현한다.
 Agent(
   description: "코드 구현",
   subagent_type: "developer",
-  model: "opus",
+  model: "sonnet",
   prompt: "_workspace/01_plan.md를 읽고 구현 계획에 따라 코드를 작성하라.
   
   완료 후 _workspace/02_dev_result.md에 변경 요약을 작성하라.
